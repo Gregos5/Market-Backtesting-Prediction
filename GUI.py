@@ -225,7 +225,11 @@ class P_Home(ctk.CTkFrame):
     title = 'Home'
     def __init__(self, parent, controller):
         ctk.CTkFrame.__init__(self, parent)
+        title = ctk.CTkLabel(self, text = "BTC predictions", font=font_L)
+        title.place(relx = 0.5, rely = 0.03, anchor = 'center')
         
+        subtitle = ctk.CTkLabel(self, text = "select predictors and optimise backetesting parameters to increase precision", font=font_M)
+        subtitle.place(relx = 0.5, rely = 0.07, anchor = 'center')
         frame1 = Frame(self, "predictors")
         frame1.place(relx= 0.05, rely = 0.55, relwidth=0.4, relheight=0.8, anchor = 'w')
 
