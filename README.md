@@ -8,7 +8,7 @@ The goal is to provide a user interface on which the user can select the predict
 ## Data 
 All data is taken using Bybit API. However, since bybit only allows small amounts requests at a time, I have included data requests functions in PriceAction Class which is present in data.py file. These functions allow you to download any amount of Cryptocurrency data since its listing on Bybit Platform (since 2017, Lot of data).
 
-In this case, I have chosen to use only hourly data because it was faster to download and the dataset is very large.
+In this case, I have chosen to use only hourly data because it was faster to download and the dataset of 36000 Hours
 
 ## Predictors not used
 When the predictors are not used, the precision is around 50%, which is basically similar to gambling.
