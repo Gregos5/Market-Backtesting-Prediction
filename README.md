@@ -18,6 +18,4 @@ When the predictors are not used, the precision is around 50%, which is basicall
 ## All Predictors used
 When all of them are used , the precision reaches 60% and above which means the model can generate profit.
 
-![backtesting](https://github.com/Gregos5/Market-Backtesting-Prediction/assets/78451671/3bf296ed-b1a0-4ed3-bb23-74299f961e64)
-
-
+![Screenshot 2023-07-10 183815](https://github.com/Gregos5/Market-Backtesting-Prediction/assets/78451671/5a46bee1-5c79-4c03-8a06-c427b146ef0b)
