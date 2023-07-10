@@ -13,7 +13,8 @@ In this case, I have chosen to use only hourly data because it was faster to dow
 ## Predictors not used
 When the predictors are not used, the precision is around 50%, which is basically similar to gambling.
 
-![Screenshot 2023-07-10 183815](https://github.com/Gregos5/Market-Backtesting-Prediction/assets/78451671/b020bf55-5dc4-4b0a-9b6c-b4c0fd7dc814)
+![Screenshot 2023-07-10 184921](https://github.com/Gregos5/Market-Backtesting-Prediction/assets/78451671/fb6d88fe-76ae-46b5-87d6-82c30d378e05)
+
 
 ## All Predictors used
 When all of them are used , the precision reaches 60% and above which means the model can generate profit.
