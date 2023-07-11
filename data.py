@@ -2,8 +2,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, precision_score, confusion_matrix
+from sklearn.metrics import precision_score, confusion_matrix
 import calendar, os
 import matplotlib.pyplot as plt
 from pybit import inverse_perpetual
@@ -395,7 +394,6 @@ class Predictors():
         weekly_mean = data.rolling(24*7).mean()
         weekly_trend = data.shift(1).rolling(24*7).mean()["Target"]
 
-
         # Setup our target.  This identifies if the price went up or down
         data["Target"] = btc1H.rolling(2).apply(lambda x: x.iloc[1] > x.iloc[0])["Close"]
 
@@ -407,9 +405,10 @@ class Predictors():
         data["high_close_ratio"] = data["High"] / data["Close"]
         data["low_close_ratio"] = data["Low"] / data["Close"]
 
+        data["EMA"] = data['Close'].ewm(span=50, adjust=False).mean()
         self.data = data
         self.RFC()
-        self.predictors = ["Close", "Volume", "Open", "High", "Low", "open_close_ratio", "high_close_ratio", "low_close_ratio", "daily_mean", "weekly_mean", "weekly_trend"]
+        self.predictors = ["Close", "Volume", "Open", "High", "Low", "open_close_ratio", "high_close_ratio", "low_close_ratio", "daily_mean", "weekly_mean", "weekly_trend", "EMA"]
 
 
     def RFC(self, n_estimators=100, min_samples_split=500):
@@ -417,7 +416,7 @@ class Predictors():
         self.model = RandomForestClassifier(n_estimators=n_estimators, min_samples_split=min_samples_split, random_state=1)
 
     # backtest strategies
-    def backtest(self, start=9000, step=3000, predictors = ["Close", "Volume", "Open", "High", "Low", "open_close_ratio", "high_close_ratio", "low_close_ratio", "daily_mean", "weekly_mean", "weekly_trend"]):
+    def backtest(self, start=9000, step=3000, predictors = ["Close", "Volume", "Open", "High", "Low", "open_close_ratio", "high_close_ratio", "low_close_ratio", "daily_mean", "weekly_mean", "weekly_trend", "EMA"]):
         predictions = []
         self.predictors = predictors
         data = self.data.iloc[200:]
