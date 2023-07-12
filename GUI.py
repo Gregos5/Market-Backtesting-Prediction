@@ -2,12 +2,12 @@ import tkinter as tk
 from tkinter import ttk
 from PIL import Image
 import customtkinter as ctk
-import os, cv2, time, datetime, csv
+import os
 from data import PriceAction, Predictors
 
 # Fonts
-font_XS = ("Consolas", 16, "normal")
-font_S = ("Consolas", 18, "normal")
+font_XS = ("Consolas", 15, "normal")
+font_S = ("Consolas", 17, "normal")
 font_M = ("Consolas", 25, "normal")
 font_L = ("Consolas", 30, "normal")
 ctk.set_appearance_mode("light")
@@ -173,14 +173,41 @@ def place_n_H(widgets,rely, boundary=(0,1)):
 
 def place_n_V(widgets,relx, boundary=(0,1), anchor='w'):
     ''' Equally distribute widgets across frame '''
-    L_bound, R_bound = boundary
-    segment = R_bound-L_bound
+    T_bound, B_bound = boundary
+    segment = B_bound-T_bound
     n = len(widgets)
     for i in range(len(widgets)):
-        point = segment*(i+1)/(n+1)+L_bound
+        point = segment*(i+1)/(n+1)+T_bound
         try:
             widgets[i].place(relx = relx, rely=point, anchor=anchor)
         except:pass
+     
+def place_n(widgets_VH, boundary_x=(0,1), boundary_y=(0,1), anchor='center'):
+    '''
+    widgets_VH is an array of array ex: \n
+    [[A1, A2], \n
+     [B1, B2, B3], \n
+     [C1, C2]]
+    '''
+    T_bound, B_bound = boundary_y
+    segment_y = B_bound-T_bound
+    n_y = len(widgets_VH)
+
+    
+    L_bound, R_bound = boundary_x
+    segment_x = R_bound-L_bound
+
+    for i in range(len(widgets_VH)):
+        point_y = segment_y*(i+1)/(n_y+1)+T_bound
+        print('y', point_y)
+        
+        n_x = len(widgets_VH[i])
+        print(n_x)
+
+        for j in range(len(widgets_VH[i])):
+            point_x = segment_x*(j+1)/(n_x+1)+L_bound
+            print('x', point_x)
+            widgets_VH[i][j].place(relx = point_x, rely=point_y, anchor=anchor)
 
 def add_image(frame, file_name, relx, rely, size = (200,40), anchor='center'):
     photo = ctk.CTkImage(Image.open(os.path.join(path, 'images\\', file_name), "r"), size=size)
@@ -230,48 +257,66 @@ class P_Home(ctk.CTkFrame):
         
         subtitle = ctk.CTkLabel(self, text = "select predictors and optimise backetesting parameters to increase precision", font=font_M)
         subtitle.place(relx = 0.5, rely = 0.07, anchor = 'center')
-        frame1 = Frame(self, "predictors")
-        frame1.place(relx= 0.05, rely = 0.55, relwidth=0.4, relheight=0.8, anchor = 'w')
+        frame_Pre = Frame(self, "predictors")
+        frame_Pre.place(relx= 0.05, rely = 0.55, relwidth=0.4, relheight=0.8, anchor = 'w')
 
-        frame2 = Frame(frame1, "backtest parameters")
-        frame2.place(relx= 0.95, rely = 0.1, relwidth=0.4, relheight=0.3, anchor = 'ne')
+        frame_Mod = Frame(frame_Pre, "Model Selection")
+        frame_Mod.place(relx= 0.95, rely = 0.1, relwidth=0.55, relheight=0.25, anchor = 'ne')
 
-        frame3 = Frame(self, "Result")
-        frame3.place(relx = 0.95, rely = 0.55,relwidth=0.4, relheight=0.8, anchor = 'e')
+        frame_BT = Frame(frame_Pre, "backtesting parameters")
+        frame_BT.place(relx= 0.95, rely = 0.4, relwidth=0.55, relheight=0.25, anchor = 'ne')
+
+        frame_result = Frame(self, "Result")
+        frame_result.place(relx = 0.95, rely = 0.55,relwidth=0.4, relheight=0.8, anchor = 'e')
+
 
         btn_exit = MyButton(self, text="Exit", command=lambda: controller.Quit_application())
         btn_exit.place(relx = 0.5, rely = 0.95, anchor = 'center')
+        
+        # Model selection
+        model_select = MyOption(frame_Mod, ["RFC", "BGC", "ETC"])
+        lbl_n_estimators = MyLabel(frame_Mod, text="# estimators", font = font_XS)
+        ent_n_estimators = MyEntry(frame_Mod)
+        ent_n_estimators.insert(0, "100")
 
-        # modelling parameters 
+        min_samples_split = MyLabel(frame_Mod, text="min sample split", font = font_XS)
+        ent_min_samples_split = MyEntry(frame_Mod)
+        ent_min_samples_split.insert(0, "500")
+        place_n([[model_select], [lbl_n_estimators,ent_n_estimators],[min_samples_split,ent_min_samples_split]])
+
+        # Backtesting parameters 
         predictors = Predictors.predictors
         checkboxes = [0]*len(predictors)
         for i in range(len(predictors)):
-            checkboxes[i] = ctk.CTkCheckBox(master=frame1, text=predictors[i], onvalue=1, offvalue=0)
+            checkboxes[i] = ctk.CTkCheckBox(master=frame_Pre, text=predictors[i], onvalue=1, offvalue=0)
             checkboxes[i].select()
         place_n_V(checkboxes, relx = 0.15, boundary = (0.1,0.9))
 
-        lbl_start = MyLabel(frame2, text="start")
-        ent_start = MyEntry(frame2)
+        lbl_start = MyLabel(frame_BT, text="start", font = font_XS)
+        ent_start = MyEntry(frame_BT)
         ent_start.insert(0, "9000")
         
-        lbl_step = MyLabel(frame2, text="step")
-        ent_step = MyEntry(frame2)
+        lbl_step = MyLabel(frame_BT, text="step", font = font_XS)
+        ent_step = MyEntry(frame_BT)
         ent_step.insert(0, "3000")
-        place_n_H([lbl_start,ent_start], rely=0.3)
-        place_n_H([lbl_step,ent_step], rely=0.7)
+
+        lbl_TH = MyLabel(frame_BT, text="Threshold", font = font_XS)
+        ent_TH = MyEntry(frame_BT)
+        ent_TH.insert(0, "0.6")
+        place_n([[lbl_start,ent_start], [lbl_step,ent_step],[lbl_TH,ent_TH]])
 
         # Results of predictions
         lbls = []
         lbl_results = []
-        for text in ["precision Score: ", "True Negatives:", "False positive: ", "False negatives: ", "True Positives"]:
-            lbls.append(MyLabel(frame3, text = text))
-            lbl_results.append(MyLabel(frame3, text = '0'))
+        for text in ["precision Score: ", "True Negatives: ", "False positive: ", "False negatives: ", "True Positives: "]:
+            lbls.append(MyLabel(frame_result, text = text))
+            lbl_results.append(MyLabel(frame_result, text = '0'))
 
         place_n_V(lbls, relx=0.5, boundary = (0.05,0.5), anchor = 'e')
         place_n_V(lbl_results, relx=0.53, boundary = (0.05,0.5))
         
 
-        btn_score = MyButton(frame1, text="Score", command=lambda: predict_score())
+        btn_score = MyButton(frame_Pre, text="Score", command=lambda: predict_score())
         btn_score.place(relx = 0.5, rely = 0.9, anchor = 'center')
         def predict_score():
             selected_predictors = []
@@ -280,7 +325,9 @@ class P_Home(ctk.CTkFrame):
                     selected_predictors.append(predictors[i])
             
             print(selected_predictors)
-            predictions = Predictors.backtest(start = int(ent_start.get()), step = int(ent_step.get()), predictors = selected_predictors)
+            Predictors.predictors = selected_predictors
+            Predictors.create_model(model_select.get(), n_estimators=int(ent_n_estimators.get()), min_samples_split= int(ent_min_samples_split.get()) )
+            predictions = Predictors.backtest(start = int(ent_start.get()), step = int(ent_step.get()), threshold=float(ent_TH.get()))
             values = [*Predictors.score(predictions)]
             print(values)
             for i in range(len(values)):

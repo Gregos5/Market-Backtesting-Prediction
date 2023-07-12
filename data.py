@@ -2,11 +2,17 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import ExtraTreesClassifier
+from sklearn.ensemble import BaggingClassifier
+from sklearn.inspection import permutation_importance
 from sklearn.metrics import precision_score, confusion_matrix
 import calendar, os
 import matplotlib.pyplot as plt
 from pybit import inverse_perpetual
 import plotly.graph_objects as go
+
+plt.rcParams.update({'figure.figsize': (12.0, 8.0)})
+plt.rcParams.update({'font.size': 14})
 
 class PriceAction():
     def __init__(self, session = inverse_perpetual.HTTP(endpoint="https://api.bybit.com"), TF = '1H', ticker='BTCUSD'):
@@ -375,7 +381,8 @@ class PriceAction():
 
 class Predictors():
     def __init__(self, btc1H):
-
+        
+        # Ensure we know the actual closing price
         data = pd.DataFrame(btc1H[['Close']])
         data = data.rename(columns = {'Close':'Actual_Close'})
 
@@ -406,19 +413,54 @@ class Predictors():
         data["low_close_ratio"] = data["Low"] / data["Close"]
 
         data["EMA"] = data['Close'].ewm(span=50, adjust=False).mean()
+        data['Above_EMA'] = data['Close'].gt(data['EMA']).astype(int)
+
+        data = self.check_price_above_vwap(data)
+        print(data.tail(30))
         self.data = data
-        self.RFC()
-        self.predictors = ["Close", "Volume", "Open", "High", "Low", "open_close_ratio", "high_close_ratio", "low_close_ratio", "daily_mean", "weekly_mean", "weekly_trend", "EMA"]
+        self.predictors = ["Close", "Volume", "Open", "High", "Low", "open_close_ratio", "high_close_ratio", "low_close_ratio", "daily_mean", "weekly_mean", "weekly_trend", "Above_EMA", "Above_VWAP"]
+
+    def check_price_above_vwap(self, data):
+        # Get the stock data for the last 1 day at a 1-hour interval
+        # Calculate the daily VWAP
+        # Loop over the dataset in increments of days 24 hours
+        n = 0
+        daily_data_sep = pd.DataFrame()
+        print(data.shape[0]%24)
+        for i in range(0, data.shape[0],24):
+            
+            daily_data = data.iloc[(i-24):i]
+            daily_data['VWAP'] = (daily_data['Close'] * daily_data['Volume']).cumsum() / daily_data['Volume'].cumsum()
+            daily_data_sep = pd.concat([daily_data_sep, daily_data['VWAP']])
+
+        daily_data = data.iloc[-(data.shape[0]%24):]
+        daily_data['VWAP'] = (daily_data['Close'] * daily_data['Volume']).cumsum() / daily_data['Volume'].cumsum()
+        daily_data_sep = pd.concat([daily_data_sep, daily_data['VWAP']])
+        data['VWAP'] = daily_data_sep
+        data['Above_VWAP'] = data['Close'].gt(data['VWAP']).astype(int)
+        return data
 
 
-    def RFC(self, n_estimators=100, min_samples_split=500):
-        # Create a random forest classification model.  Set min_samples_split high to ensure we don't overfit.
-        self.model = RandomForestClassifier(n_estimators=n_estimators, min_samples_split=min_samples_split, random_state=1)
+    def create_model(self,model_type = "RFC", n_estimators=100, min_samples_split=500):
+        """
+        Select a model and input parameters for it
+        Choose between: model_type = "RFC" | "BGC" | "ETC"
+        Default:  random forest classification model.  Set min_samples_split high to ensure we don't overfit.
+        """
+        match model_type:
+            case "RFC":
+                self.model = RandomForestClassifier(n_estimators=n_estimators, min_samples_split=min_samples_split, random_state=1)
+            case "BGC":
+                self.model = BaggingClassifier(n_estimators=n_estimators, random_state=1)
+            case "ETC":
+                self.model = ExtraTreesClassifier(n_estimators=n_estimators, min_samples_split=min_samples_split, random_state=1)
+            case _:
+                print("Not a Model")
+                self.model = RandomForestClassifier(n_estimators=n_estimators, min_samples_split=min_samples_split, random_state=1)
 
     # backtest strategies
-    def backtest(self, start=9000, step=3000, predictors = ["Close", "Volume", "Open", "High", "Low", "open_close_ratio", "high_close_ratio", "low_close_ratio", "daily_mean", "weekly_mean", "weekly_trend", "EMA"]):
+    def backtest(self, start=9000, step=3000, threshold = 0.6):
         predictions = []
-        self.predictors = predictors
         data = self.data.iloc[200:]
         # Loop over the dataset in increments
         for i in range(start, data.shape[0], step):
@@ -432,8 +474,8 @@ class Predictors():
             # Make predictions
             preds = self.model.predict_proba(test[self.predictors])[:,1]
             preds = pd.Series(preds, index=test.index)
-            preds[preds > .6] = 1
-            preds[preds<=.6] = 0
+            preds[preds > threshold] = 1
+            preds[preds<= threshold] = 0
             
             # Combine predictions and test values
             combined = pd.concat({"Target": test["Target"],"Predictions": preds}, axis=1)
@@ -451,6 +493,12 @@ class Predictors():
         print('amount of fp', fp)
         predictions["Predictions"].value_counts()
         predictions.iloc[-100:].plot()
+
+        sorted_idx = self.model.feature_importances_.argsort()
+        print(sorted_idx)
+        plt.barh(self.predictors, self.model.feature_importances_)
+        # plt.barh(self.predictors[sorted_idx], self.model.feature_importances_[sorted_idx])
+        plt.xlabel("Random Forest Feature Importance")
 
         return score, tn, fp, fn, tp 
 
